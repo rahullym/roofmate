@@ -1,7 +1,7 @@
 // src/server/data/catalog.ts
 import "server-only";
-import { Prisma, Tier } from "@prisma/client";
-import { prisma } from "@/lib/prisma";
+import { Tier } from "@prisma/client";
+import { searchProducts, getProductBySlug as getStaticProductBySlug } from "@/lib/static-data";
 import type { CatalogProduct } from "@/types";
 
 export type CatalogQueryParams = {
@@ -10,38 +10,13 @@ export type CatalogQueryParams = {
 };
 
 export async function getCatalog(params: CatalogQueryParams): Promise<CatalogProduct[]> {
-  const where: Prisma.ProductWhereInput = {
-    deletedAt: null,
-    isActive: true
-  };
-
-  if (params.categorySlug) {
-    where.category = { slug: params.categorySlug, deletedAt: null };
-  }
-
-  if (params.q && params.q.trim().length > 0) {
-    const term = params.q.trim();
-    where.OR = [
-      { name: { contains: term, mode: "insensitive" } },
-      { sku: { contains: term, mode: "insensitive" } },
-      { description: { contains: term, mode: "insensitive" } }
-    ];
-  }
-
-  const products = await prisma.product.findMany({
-    where,
-    orderBy: [{ category: { displayOrder: "asc" } }, { name: "asc" }],
-    include: {
-      category: { select: { id: true, name: true, slug: true } },
-      prices: { orderBy: { effectiveFrom: "desc" } }
-    }
-  });
+  const products = searchProducts(params);
 
   return products.map((p) => {
     const latestPerTier: Partial<Record<Tier, number>> = {};
     for (const row of p.prices) {
       if (latestPerTier[row.tier] === undefined) {
-        latestPerTier[row.tier] = Number(row.price);
+        latestPerTier[row.tier] = row.price;
       }
     }
     return {
@@ -59,11 +34,5 @@ export async function getCatalog(params: CatalogQueryParams): Promise<CatalogPro
 }
 
 export async function getProductBySlug(slug: string) {
-  return prisma.product.findFirst({
-    where: { slug, deletedAt: null },
-    include: {
-      category: { select: { id: true, name: true, slug: true } },
-      prices: { orderBy: [{ tier: "asc" }, { effectiveFrom: "desc" }] }
-    }
-  });
+  return getStaticProductBySlug(slug);
 }

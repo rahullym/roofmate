@@ -1,6 +1,6 @@
 // src/app/category/[slug]/page.tsx
 import { notFound } from "next/navigation";
-import { prisma } from "@/lib/prisma";
+import { getCategoryBySlug } from "@/lib/static-data";
 import { getCatalog } from "@/server/data/catalog";
 import { CategoryNav } from "@/components/category-nav";
 import { ProductList } from "@/components/product-list";
@@ -12,12 +12,9 @@ type SearchParams = { q?: string };
 export const dynamic = "force-dynamic";
 
 export async function generateMetadata({ params }: { params: Params }) {
-  const cat = await prisma.category.findFirst({
-    where: { slug: params.slug, deletedAt: null },
-    select: { name: true, description: true }
-  });
+  const cat = getCategoryBySlug(params.slug);
   if (!cat) return { title: "Category" };
-  return { title: cat.name, description: cat.description ?? undefined };
+  return { title: cat.name, description: cat.description };
 }
 
 export default async function CategoryPage({
@@ -27,10 +24,7 @@ export default async function CategoryPage({
   params: Params;
   searchParams: SearchParams;
 }) {
-  const category = await prisma.category.findFirst({
-    where: { slug: params.slug, deletedAt: null },
-    select: { id: true, name: true, slug: true, description: true }
-  });
+  const category = getCategoryBySlug(params.slug);
   if (!category) notFound();
 
   const products = await getCatalog({

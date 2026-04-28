@@ -1,14 +1,10 @@
 // src/components/category-nav.tsx
 import Link from "next/link";
-import { prisma } from "@/lib/prisma";
+import { getCategories } from "@/lib/static-data";
 import { cn } from "@/lib/utils";
 
-export async function CategoryNav({ activeSlug }: { activeSlug?: string }) {
-  const categories = await prisma.category.findMany({
-    where: { deletedAt: null },
-    orderBy: { displayOrder: "asc" },
-    select: { id: true, name: true, slug: true }
-  });
+export function CategoryNav({ activeSlug }: { activeSlug?: string }) {
+  const categories = getCategories();
 
   return (
     <nav aria-label="Categories" className="-mx-3 sm:mx-0 px-3 sm:px-0 overflow-x-auto scroll-touch">
