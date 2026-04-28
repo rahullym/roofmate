@@ -28,8 +28,7 @@ export default async function CatalogPage({ searchParams }: { searchParams: Sear
       <div className="sticky top-14 sm:top-16 z-30 -mx-3 sm:mx-0 px-3 sm:px-0 py-2 sm:py-0 bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/70 sm:bg-transparent sm:backdrop-blur-none space-y-2 sm:space-y-3">
         <SearchBar />
         <Suspense fallback={<Skeleton className="h-9 w-full" />}>
-          {/* @ts-expect-error Async Server Component */}
-          <CategoryNav />
+            <CategoryNav />
         </Suspense>
       </div>
 
@@ -42,7 +41,6 @@ export default async function CatalogPage({ searchParams }: { searchParams: Sear
           </div>
         }
       >
-        {/* @ts-expect-error Async Server Component */}
         <CatalogResults q={searchParams.q} />
       </Suspense>
     </div>
