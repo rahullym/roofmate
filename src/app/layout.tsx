@@ -25,7 +25,10 @@ export const metadata: Metadata = {
     icon: [{ url: "/icon.svg", type: "image/svg+xml" }],
     apple: [{ url: "/icon.svg" }]
   },
-  formatDetection: { telephone: false }
+  formatDetection: { telephone: false },
+  other: {
+    "mobile-web-app-capable": "yes"
+  }
 };
 
 export const viewport: Viewport = {
