@@ -90,13 +90,51 @@ The single rule that enforces this lives in [src/lib/pricing.ts](src/lib/pricing
 
 ---
 
-## Deploy
+## Deploy to Vercel
 
-1. Push to GitHub.
-2. Import the repo into Vercel.
-3. Set the env vars from `.env.example` in **Project Settings → Environment Variables**.
-4. Add your prod URL to Supabase **Redirect URLs**.
-5. The first build runs `prisma generate`. Run `pnpm db:push` against your prod database from your machine before the first deploy.
+### 1. Get your Supabase pooled connection string
+
+Vercel runs each request in a short-lived serverless function. Direct Postgres connections (port 5432) will exhaust Supabase's connection limit within minutes. **Always use the pooled connection (port 6543) for `DATABASE_URL`.**
+
+Supabase Dashboard → **Project Settings → Database → Connection string**:
+- Copy the **Transaction** mode URL (port 6543) → this is your `DATABASE_URL`. Append `?pgbouncer=true&connection_limit=1` if not already present.
+- Copy the **Direct** URL (port 5432) → this is your `DIRECT_URL` (used by Prisma migrations only).
+
+### 2. Push schema to your prod DB *before* the first deploy
+
+```bash
+DATABASE_URL="<direct-url>" DIRECT_URL="<direct-url>" pnpm db:push
+DATABASE_URL="<direct-url>" pnpm db:seed   # optional — creates the ADMIN seed user the static login resolves to
+```
+
+The static `admin/admin` login resolves to the first `ADMIN` row in the `User` table. Without seeding (or manually inserting an ADMIN user), sign-in succeeds but `/admin` will redirect because there is no admin user to resolve to.
+
+### 3. Import into Vercel
+
+1. **New Project** → import `rahullym/roofmate`.
+2. Framework preset: **Next.js** (auto-detected).
+3. Build command: leave default (`pnpm build`, which runs `prisma generate && next build`).
+4. Set **Environment Variables**:
+
+   | Variable | Value |
+   | --- | --- |
+   | `DATABASE_URL` | Pooled connection (port 6543) |
+   | `DIRECT_URL` | Direct connection (port 5432) |
+   | `NEXT_PUBLIC_SUPABASE_URL` | `https://<ref>.supabase.co` (currently unused but kept for re-introducing Supabase auth) |
+   | `NEXT_PUBLIC_SUPABASE_ANON_KEY` | `sb_publishable_*` (same) |
+   | `NEXT_PUBLIC_APP_URL` | The Vercel URL once you have it (e.g. `https://roofmate.vercel.app`) |
+
+5. **Deploy**.
+
+### 4. Why `binaryTargets` is set in `prisma/schema.prisma`
+
+Vercel's runtime is Linux + OpenSSL 3.0.x. Without `binaryTargets = ["native", "rhel-openssl-3.0.x"]`, the deployed function fails with `Could not find Prisma engine for runtime "rhel-openssl-3.0.x"`. The `native` target keeps local dev (macOS) working.
+
+### 5. Production hardening before public launch
+
+The current `admin/admin` login is a **demo credential, not real auth**. Before exposing this beyond a private deploy:
+- Replace [src/app/login/actions.ts](src/app/login/actions.ts) with proper auth (Supabase Auth, NextAuth, Clerk — the cookie + middleware seam is already in place).
+- Or at minimum, change the static credentials and read them from env vars.
 
 ---
 
