@@ -1,0 +1,19 @@
+{
+  "name": "RoofMate Catalog",
+  "short_name": "RoofMate",
+  "description": "Internal product catalog with multi-tier pricing.",
+  "start_url": "/",
+  "scope": "/",
+  "display": "standalone",
+  "orientation": "portrait",
+  "background_color": "#ffffff",
+  "theme_color": "#2563eb",
+  "icons": [
+    {
+      "src": "/icon.svg",
+      "sizes": "any",
+      "type": "image/svg+xml",
+      "purpose": "any maskable"
+    }
+  ]
+}

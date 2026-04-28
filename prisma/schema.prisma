@@ -1,0 +1,107 @@
+// prisma/schema.prisma
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider  = "postgresql"
+  url       = env("DATABASE_URL")
+  directUrl = env("DIRECT_URL")
+}
+
+enum Tier {
+  MRP
+  RETAIL
+  B2B
+  B2C
+}
+
+enum Role {
+  ADMIN
+  SALES
+  DEALER
+  CUSTOMER
+}
+
+model Category {
+  id           String    @id @default(cuid())
+  name         String
+  slug         String    @unique
+  description  String?
+  displayOrder Int       @default(0)
+  products     Product[]
+  createdAt    DateTime  @default(now())
+  updatedAt    DateTime  @updatedAt
+  deletedAt    DateTime?
+
+  @@index([displayOrder])
+  @@index([deletedAt])
+}
+
+model Product {
+  id          String      @id @default(cuid())
+  categoryId  String
+  category    Category    @relation(fields: [categoryId], references: [id], onDelete: Restrict)
+  name        String
+  slug        String      @unique
+  sku         String      @unique
+  description String?
+  unit        String
+  imageUrl    String?
+  isActive    Boolean     @default(true)
+  prices      PriceTier[]
+  createdAt   DateTime    @default(now())
+  updatedAt   DateTime    @updatedAt
+  deletedAt   DateTime?
+
+  @@index([categoryId])
+  @@index([isActive])
+  @@index([deletedAt])
+}
+
+model PriceTier {
+  id            String   @id @default(cuid())
+  productId     String
+  product       Product  @relation(fields: [productId], references: [id], onDelete: Cascade)
+  tier          Tier
+  price         Decimal  @db.Decimal(12, 2)
+  currency      String   @default("INR")
+  effectiveFrom DateTime @default(now())
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  @@unique([productId, tier, effectiveFrom])
+  @@index([productId, tier])
+}
+
+model User {
+  id          String     @id @default(cuid())
+  // Mirrors Supabase auth.users.id (UUID stored as string).
+  authId      String     @unique
+  email       String     @unique
+  name        String?
+  role        Role       @default(CUSTOMER)
+  allowedTier Tier       @default(B2C)
+  auditLogs   AuditLog[]
+  createdAt   DateTime   @default(now())
+  updatedAt   DateTime   @updatedAt
+  deletedAt   DateTime?
+
+  @@index([authId])
+  @@index([role])
+}
+
+model AuditLog {
+  id         String   @id @default(cuid())
+  userId     String
+  user       User     @relation(fields: [userId], references: [id])
+  action     String
+  entityType String
+  entityId   String
+  diff       Json
+  createdAt  DateTime @default(now())
+
+  @@index([userId])
+  @@index([entityType, entityId])
+  @@index([createdAt])
+}
